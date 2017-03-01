@@ -30,7 +30,26 @@ center = None
 gridCtr1 = gridCtr2 = gridCtr3 = gridCtr4 = gridCtr5 = gridCtr6 = gridCtr7 = gridCtr8 = None
 
 
+
+def maskGrid():
+    global colorImage, GRID, gridCtr1, gridCtr2, gridCtr3, gridCtr4, gridCtr5, gridCtr6, gridCtr7, gridCtr8
+    cv2.line(colorImage, (topLeft[0],topLeft[1]), (topRight[0],topRight[1]), (0,255,0), 1)
+    cv2.line(colorImage, (topLeft[0],topLeft[1]), (bottomLeft[0],bottomLeft[1]), (0,255,0), 1)
+    cv2.line(colorImage, (topRight[0],topRight[1]), (bottomRight[0],bottomRight[1]), (0,255,0), 1)
+    cv2.line(colorImage, (bottomLeft[0],bottomLeft[1]), (bottomRight[0],bottomRight[1]), (0,255,0), 1)
+    
+    cv2.line(colorImage, ((topLeft[0]+bottomLeft[0])/2,(topLeft[1]+bottomLeft[1])/2), ((topRight[0]+bottomRight[0])/2,(topRight[1]+bottomRight[1])/2), (0,255,0), 1) #center horizonatal
+    cv2.line(colorImage, ((topLeft[0]+topRight[0])/2,(topLeft[1]+topRight[1])/2), ((bottomLeft[0]+bottomRight[0])/2,(bottomLeft[1]+bottomRight[1])/2), (0,255,0), 1) #center vertical
+    cv2.line(colorImage, ((topLeft[0]*3+topRight[0])/4,(topLeft[1]*3+topRight[1])/4), ((bottomLeft[0]*3+bottomRight[0])/4,(bottomLeft[1]*3+bottomRight[1])/4), (0,255,0), 1) #left vertical
+    cv2.line(colorImage, ((topLeft[0]+topRight[0]*3)/4,(topLeft[1]+topRight[1]*3)/4), ((bottomLeft[0]+bottomRight[0]*3)/4,(bottomLeft[1]+bottomRight[1]*3)/4), (0,255,0), 1) #right verticals
+    
+    cv2.line(colorImage, ((topLeft[0]*3+bottomLeft[0])/4,(topLeft[1]*3+bottomLeft[1])/4), ((topRight[0]*3+bottomRight[0])/4,(topRight[1]*3+bottomRight[1])/4), (0,0,255), 1)
+    cv2.line(colorImage, ((topLeft[0]+bottomLeft[0]*3)/4,(topLeft[1]+bottomLeft[1]*3)/4), ((topRight[0]+bottomRight[0]*3)/4,(topRight[1]+bottomRight[1]*3)/4), (0,0,255), 1)
+    
+
+
 def playMusic():
+    global center, gridCtr1, gridCtr2, gridCtr3, gridCtr4, gridCtr5, gridCtr6, gridCtr7, gridCtr8
     if (cv2.pointPolygonTest(gridCtr1, center, False)>0):
         pygame.mixer.music.load('cowbell9.wav')
         pygame.mixer.music.play(1)
@@ -55,19 +74,24 @@ def playMusic():
     elif (cv2.pointPolygonTest(gridCtr8, center, False)>0):
         pygame.mixer.music.load('tomtomdrum7.wav')
         pygame.mixer.music.play(1)
+    else:
+        pygame.mixer.music.stop()
+    center = None
 
 
 def imgProcess():
     # Convert BGR to HSV
     global colorImage, hsvImage, redMask, center
     hsvImage = cv2.cvtColor(colorImage, cv2.COLOR_BGR2HSV)
-    lower_red = np.array([170, 50, 150])
-    upper_red = np.array([190, 170, 255])
+    lower_red = np.array([10, 150, 140])
+    upper_red = np.array([30, 220, 210])
     redMask = cv2.inRange(hsvImage, lower_red, upper_red)
     redMask = cv2.erode(redMask, None, iterations=2)
     redMask = cv2.dilate(redMask, None, iterations=2)
     # res = cv2.bitwise_and(colorImage,colorImage, mask= redMask)
+    maskGrid()
     cv2.imshow('redMask',redMask)
+    # cv2.imshow('Edited colorImage',colorImage)
     # cv2.imshow('res',res)
 
     cnts = cv2.findContours(redMask.copy(), cv2.RETR_EXTERNAL,
@@ -85,7 +109,7 @@ def imgProcess():
         center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
         # print center[0], center[1]
         # only proceed if the radius meets a minimum size
-        if radius > 10:
+        if radius > 2:
             # draw the circle and centroid on the frame,
             # then update the list of tracked points
             # cv2.circle(colorImage, (int(x), int(y)), int(radius),
@@ -110,7 +134,6 @@ def imgProcess():
     # show the frame to our screen
     # cv2.imshow("colorImage", colorImage)
     playMusic()
-
 
 
 def drawGrid():
